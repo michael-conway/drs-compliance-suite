@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bulk Access URL Response",
+  "type": "object",
+  "$ref": "bulk_access_url_response.json#/definitions/bulk_access_url_response",
+  "definitions": {
+    "bulk_access_url_response": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "$ref": "summary.json#/definitions/summary"
+        },
+        "unresolved_drs_objects": {
+          "$ref": "unresolved.json#/definitions/unresolved"
+        },
+        "resolved_drs_object_access_urls": {
+          "type": "array",
+          "items": {
+            "$ref": "bulk_access_url.json#/definitions/bulk_access_url"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

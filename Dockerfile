@@ -6,7 +6,6 @@ WORKDIR /usr/src/app
 
 # copy only required files to the container
 COPY docker-requirements.txt .
-COPY supported_drs_versions.py .
 COPY compliance_suite /usr/src/app/compliance_suite
 
 # set python path to current dir

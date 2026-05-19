@@ -16,11 +16,12 @@ docker-publish:
 # TODO: remove this or parameterize it so it's not hard-coded
 .PHONY: run-docker
 run-docker:
-	docker run -d -v $(PWD)/output/:/usr/src/app/output/ -p 57568:57568 \
+	docker run --rm -v $(PWD)/output/:/usr/src/app/output/ \
 	ga4gh/drs-compliance-suite:${DOCKER_TAG} \
 	--server_base_url "http://host.docker.internal:8089/ga4gh/drs/v1" \
 	--platform_name "ga4gh starter kit drs" --platform_description "GA4GH reference implementation of DRS specification" \
-	--drs_version "1.2.0" --config_file "compliance_suite/config/config_samples/config_none.json" --serve --serve_port 57568
+	--drs_version "1.2.0" --config_file "compliance_suite/config/config_samples/config_none.json" \
+	--report_path "./output/drs_compliance_report.md"
 
 .PHONY: run-dockstore-wdl
 run-dockstore-wdl:

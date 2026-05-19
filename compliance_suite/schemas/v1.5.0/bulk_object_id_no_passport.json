@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bulk Object ID Request Without Passport",
+  "type": "object",
+  "$ref": "bulk_object_id_no_passport.json#/definitions/bulk_object_id_no_passport",
+  "definitions": {
+    "bulk_object_id_no_passport": {
+      "type": "object",
+      "description": "The request object that contains a DRS object IDs array.",
+      "properties": {
+        "bulk_object_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array of object IDs."
+        }
+      },
+      "required": [
+        "bulk_object_ids"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

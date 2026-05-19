@@ -1,1 +1,0 @@
-BAD_SERVER_URL = "http://0.0.0.0:8988/"

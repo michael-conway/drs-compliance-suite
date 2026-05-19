@@ -2,6 +2,10 @@
     "server_base_url": "http://host.docker.internal:8089/ga4gh/drs/v1",
     "platform_name": "ga4gh starter kit drs",
     "platform_description": "GA4GH reference implementation of DRS specification",
-    "auth_type": "none",
-    "report_path": "cwl-test-drs-compliance-report.json"
+    "version": "1.5.0",
+    "config_file": {
+        "class": "File",
+        "path": "../../config/config_drs.json"
+    },
+    "report_path": "cwl-test-drs-compliance-report.md"
 }

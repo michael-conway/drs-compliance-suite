@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DRS Service Info object",
+  "description": "GA4GH Service Info with DRS 1.5.0 service metadata",
+  "type": "object",
+  "$ref": "service_info.json#/definitions/service_info",
+  "definitions": {
+    "service_info": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique ID of this service."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of this service."
+        },
+        "type": {
+          "type": "object",
+          "required": [
+            "artifact"
+          ],
+          "properties": {
+            "group": {
+              "type": "string"
+            },
+            "artifact": {
+              "type": "string",
+              "enum": [
+                "drs"
+              ]
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the service."
+        },
+        "organization": {
+          "type": "object",
+          "description": "Organization providing the service.",
+          "required": [
+            "name",
+            "url"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string",
+              "format": "uri"
+            }
+          },
+          "additionalProperties": false
+        },
+        "contactUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "documentationUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "environment": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "maxBulkRequestLength": {
+          "type": "integer",
+          "description": "Deprecated root-level max length the bulk request endpoints can handle before generating a 413 error."
+        },
+        "drs": {
+          "type": "object",
+          "required": [
+            "maxBulkRequestLength"
+          ],
+          "properties": {
+            "maxBulkRequestLength": {
+              "type": "integer",
+              "description": "The max length the bulk request endpoints can handle before generating a 413 error."
+            },
+            "objectCount": {
+              "type": "integer",
+              "description": "The total number of objects in this DRS service."
+            },
+            "totalObjectSize": {
+              "type": "integer",
+              "description": "The total size of all objects in this DRS service in bytes."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "organization",
+        "version"
+      ],
+      "additionalProperties": false
+    },
+    "drs_service": {
+      "type": "object",
+      "properties": {
+        "maxBulkRequestLength": {
+          "type": "integer",
+          "description": "Deprecated root-level max length the bulk request endpoints can handle before generating a 413 error."
+        },
+        "drs": {
+          "type": "object",
+          "required": [
+            "maxBulkRequestLength"
+          ],
+          "properties": {
+            "maxBulkRequestLength": {
+              "type": "integer",
+              "description": "The max length the bulk request endpoints can handle before generating a 413 error."
+            },
+            "objectCount": {
+              "type": "integer",
+              "description": "The total number of objects in this DRS service."
+            },
+            "totalObjectSize": {
+              "type": "integer",
+              "description": "The total size of all objects in this DRS service in bytes."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "drs"
+      ]
+    }
+  }
+}

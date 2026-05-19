@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bulk Resolution Summary",
+  "type": "object",
+  "$ref": "summary.json#/definitions/summary",
+  "definitions": {
+    "summary": {
+      "type": "object",
+      "description": "A summary of what was resolved.",
+      "properties": {
+        "requested": {
+          "type": "integer",
+          "description": "Number of items requested."
+        },
+        "resolved": {
+          "type": "integer",
+          "description": "Number of objects resolved."
+        },
+        "unresolved": {
+          "type": "integer",
+          "description": "Number of objects not resolved."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

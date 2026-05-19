@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bulk Access URL",
+  "type": "object",
+  "$ref": "bulk_access_url.json#/definitions/bulk_access_url",
+  "definitions": {
+    "bulk_access_url": {
+      "type": "object",
+      "properties": {
+        "drs_object_id": {
+          "type": "string"
+        },
+        "drs_access_id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "description": "A fully resolvable URL that can be used to fetch the actual object bytes."
+        },
+        "headers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An optional list of headers to include in the HTTP request to `url`."
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

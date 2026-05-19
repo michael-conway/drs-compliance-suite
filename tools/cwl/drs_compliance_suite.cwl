@@ -2,7 +2,7 @@
 
 cwlVersion: v1.0
 class: CommandLineTool
-baseCommand:
+baseCommand: drs-compliance-suite
 hints:
   DockerRequirement:
     dockerPull: ga4gh/drs-compliance-suite:0.0.16
@@ -22,15 +22,20 @@ inputs:
     inputBinding:
       position: 3
       prefix: --platform_description
-  auth_type:
+  version:
     type: string
     inputBinding:
       position: 4
-      prefix: --auth_type
+      prefix: --version
+  config_file:
+    type: File
+    inputBinding:
+      position: 5
+      prefix: --config_file
   report_path:
     type: string
     inputBinding:
-      position: 5
+      position: 6
       prefix: --report_path
 outputs: 
   drs-compliance-report:   

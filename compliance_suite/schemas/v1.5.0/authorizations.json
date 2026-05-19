@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Authorizations",
+  "type": "object",
+  "$ref": "authorizations.json#/definitions/authorizations",
+  "definitions": {
+    "authorizations": {
+      "type": "object",
+      "properties": {
+        "drs_object_id": {
+          "type": "string"
+        },
+        "supported_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "None",
+              "BasicAuth",
+              "BearerAuth",
+              "PassportAuth"
+            ]
+          },
+          "description": "An optional list of supported authorization types. More than one can be supported and tried in sequence. Defaults to `None` if empty or missing."
+        },
+        "passport_auth_issuers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "If authorizations contain `PassportAuth`, this is a required list of visa issuers that may authorize access to this object."
+        },
+        "bearer_auth_issuers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "If authorizations contain `BearerAuth`, this is an optional list of issuers that may authorize access to this object."
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

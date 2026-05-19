@@ -7,7 +7,7 @@ import os
 import structlog
 import zipfile
 from zipfile import ZipFile
-from supported_drs_versions import SUPPORTED_DRS_VERSIONS
+from compliance_suite.supported_drs_versions import SUPPORTED_DRS_VERSIONS
 
 host_ip = socket.gethostbyname("")
 host_name = socket.getfqdn()
@@ -132,23 +132,14 @@ class Parser:
                             default="INFO")
         parser.add_argument("--report_path",
                             required=False,
-                            help="path of the output file",
+                            help="path of the output Markdown report file",
                             type=str,
-                            default="./output/drs_compliance_report.json")
-        parser.add_argument("--drs_version",
+                            default="./output/drs_compliance_report.md")
+        parser.add_argument("--version",
                             required=True,
-                            help="DRS version implemented by the DRS server",
+                            help="DRS specification version to test against",
                             type=str,
                             choices=SUPPORTED_DRS_VERSIONS)
-        parser.add_argument("--serve",
-                            required=False,
-                            help="If this flag is set, the output report is served as an html webpage",
-                            action='store_true')
-        parser.add_argument("--serve_port",
-                            required=False,
-                            type=int,
-                            help="The port where the output report html is deployed",
-                            default=57568)
         parser.add_argument("--config_file",
                             required=True,
                             type=str,

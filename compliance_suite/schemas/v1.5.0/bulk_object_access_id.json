@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bulk Object Access ID Request",
+  "type": "object",
+  "$ref": "bulk_object_access_id.json#/definitions/bulk_object_access_id",
+  "definitions": {
+    "bulk_object_access_id": {
+      "type": "object",
+      "description": "The request object that contains object_id/access_id tuples.",
+      "properties": {
+        "passports": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bulk_object_access_ids": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "bulk_object_id": {
+                "type": "string",
+                "description": "DRS object ID."
+              },
+              "bulk_access_ids": {
+                "type": "array",
+                "description": "DRS object access IDs.",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "bulk_object_id",
+              "bulk_access_ids"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "bulk_object_access_ids"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

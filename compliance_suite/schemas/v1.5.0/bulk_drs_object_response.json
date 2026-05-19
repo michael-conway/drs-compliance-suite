@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bulk DRS Object Response",
+  "type": "object",
+  "$ref": "bulk_drs_object_response.json#/definitions/bulk_drs_object_response",
+  "definitions": {
+    "bulk_drs_object_response": {
+      "type": "object",
+      "properties": {
+        "summary": {
+          "$ref": "summary.json#/definitions/summary"
+        },
+        "unresolved_drs_objects": {
+          "$ref": "unresolved.json#/definitions/unresolved"
+        },
+        "resolved_drs_object": {
+          "type": "array",
+          "items": {
+            "$ref": "drs_object.json#/definitions/drs_object"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

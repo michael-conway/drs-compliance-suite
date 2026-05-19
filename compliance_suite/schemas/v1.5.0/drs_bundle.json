@@ -1,0 +1,7 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DRS bundle",
+  "description": "DRS bundle v1.5.0. Bundles are deprecated in DRS 1.5.0 but remain represented as DrsObject responses with `contents`.",
+  "type": "object",
+  "$ref": "drs_object.json#/definitions/drs_object"
+}

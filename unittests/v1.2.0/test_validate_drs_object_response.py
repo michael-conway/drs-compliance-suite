@@ -41,3 +41,14 @@ class TestValidateDRSObjectResponse(unittest.TestCase):
         self.assertEqual(expected_status,self.validator.case.get_status())
         self.assertListEqual(expected_access_id_list, actual_access_id_list, "Actual access_id list doesn't match the expected list")
         self.assertEqual(self.validator.case.get_message(),expected_message)
+
+    def test_validate_has_access_info_warns_when_bundle_has_no_access_methods(self):
+        self.validator.set_actual_response(mock_response_0)
+        self.validator.set_case(self.mock_case)
+        actual_access_id_list = self.validator.validate_has_access_info(is_bundle=True)
+        self.assertEqual(Status.WARN, self.validator.case.get_status())
+        self.assertListEqual([], actual_access_id_list)
+        self.assertEqual(
+            "access_methods is not provided. It is not required for a DRS Bundle",
+            self.validator.case.get_message()
+        )

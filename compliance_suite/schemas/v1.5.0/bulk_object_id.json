@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Bulk Object ID Request",
+  "type": "object",
+  "$ref": "bulk_object_id.json#/definitions/bulk_object_id",
+  "definitions": {
+    "bulk_object_id": {
+      "type": "object",
+      "description": "The request object that contains a DRS object IDs array and optional passports.",
+      "properties": {
+        "passports": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Encoded JWT GA4GH Passports."
+        },
+        "bulk_object_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array of object IDs."
+        }
+      },
+      "required": [
+        "bulk_object_ids"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DRS object info",
+  "description": "DRS object info v1.5.0",
+  "type": "object",
+  "$ref": "drs_object.json#/definitions/drs_object",
+  "definitions": {
+    "drs_object": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "An identifier unique to this `DrsObject`."
+        },
+        "name": {
+          "type": "string",
+          "description": "A string that can be used to name a `DrsObject`."
+        },
+        "self_uri": {
+          "type": "string",
+          "description": "A drs:// hostname-based URI that tells clients how to access this object."
+        },
+        "size": {
+          "type": "integer",
+          "format": "int64",
+          "description": "For blobs, the blob size in bytes. For bundles, the cumulative size, in bytes, of items in the `contents` field."
+        },
+        "created_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of content creation in RFC3339."
+        },
+        "updated_time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of content update in RFC3339."
+        },
+        "version": {
+          "type": "string",
+          "description": "A string representing a version."
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "A string providing the mime-type of the `DrsObject`."
+        },
+        "checksums": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "checksum.json#/definitions/checksum"
+          },
+          "description": "The checksum of the `DrsObject`. At least one checksum must be provided."
+        },
+        "access_methods": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "access_method.json#/definitions/access_method"
+          },
+          "description": "The list of access methods that can be used to fetch the `DrsObject`. Required for single blobs; optional for bundles."
+        },
+        "contents": {
+          "type": "array",
+          "description": "If set, this `DrsObject` is a bundle containing the listed `ContentsObject`s.",
+          "items": {
+            "$ref": "contents_object.json#/definitions/contents_object"
+          }
+        },
+        "description": {
+          "type": "string",
+          "description": "A human readable description of the `DrsObject`."
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "A list of strings that can be used to find other metadata about this `DrsObject`."
+        }
+      },
+      "required": [
+        "id",
+        "self_uri",
+        "size",
+        "created_time",
+        "checksums"
+      ],
+      "additionalProperties": true
+    }
+  }
+}

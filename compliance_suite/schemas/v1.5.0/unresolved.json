@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Unresolved Bulk Objects",
+  "type": "array",
+  "$ref": "unresolved.json#/definitions/unresolved",
+  "definitions": {
+    "unresolved": {
+      "type": "array",
+      "description": "Error codes for unresolved DRS objects.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "error_code": {
+            "type": "integer"
+          },
+          "object_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

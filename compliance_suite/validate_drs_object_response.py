@@ -45,7 +45,7 @@ class ValidateDRSObjectResponse(ValidateResponse):
         elif not access_methods:
             if is_bundle:
                 self.case.set_message(f"access_methods is not provided. It is not required for a DRS Bundle")
-                self.case.set_status_pass()
+                self.case.set_status_warn()
             else:
                 self.case.set_message(f"access_methods is not provided. It is required and should be non-empty for a single-blob")
                 self.case.set_status_fail()

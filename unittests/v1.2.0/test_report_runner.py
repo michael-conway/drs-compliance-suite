@@ -1,6 +1,6 @@
 import unittest
 from parameterized import parameterized
-from compliance_suite.report_runner import add_access_methods_test_case
+from compliance_suite.drs_testkit import DrsTestKit
 from unittest.mock import patch, Mock
 
 class TestReportRunner(unittest.TestCase):
@@ -8,7 +8,7 @@ class TestReportRunner(unittest.TestCase):
     @parameterized.expand([
         ("has_access_methods"),
         ("has_access_info")])
-    @patch('compliance_suite.report_runner.ValidateDRSObjectResponse')
+    @patch('compliance_suite.drs_testkit.ValidateDRSObjectResponse')
     def test_add_access_methods_test_case(self, case_type, MockValidateDRSObjectResponse):
 
         test_object = Mock()
@@ -20,7 +20,7 @@ class TestReportRunner(unittest.TestCase):
         skip_access_methods_test_cases = False
         skip_message=""
         is_bundle = False
-        access_id_list = add_access_methods_test_case(
+        access_id_list = DrsTestKit.add_access_methods_test_case(
             test_object,
             case_type,
             case_description,
@@ -47,3 +47,23 @@ class TestReportRunner(unittest.TestCase):
         else:
             mock_validate_drs_response.validate_has_access_methods.assert_not_called()
             mock_validate_drs_response.validate_has_access_info.assert_called()
+
+    @patch('compliance_suite.drs_testkit.ValidateDRSObjectResponse')
+    def test_add_access_methods_test_case_warns_when_bundle_access_methods_are_optional(
+            self, MockValidateDRSObjectResponse):
+        test_object = Mock()
+        test_case = test_object.add_case.return_value
+        access_id_list = DrsTestKit.add_access_methods_test_case(
+            test_object,
+            "has_access_methods",
+            "Test case for optional bundle access methods",
+            "Test endpoint",
+            Mock(),
+            False,
+            "",
+            True
+        )
+
+        test_case.set_status_warn.assert_called()
+        MockValidateDRSObjectResponse.return_value.validate_has_access_methods.assert_not_called()
+        self.assertIsNone(access_id_list)
