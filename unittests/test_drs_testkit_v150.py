@@ -226,12 +226,12 @@ def test_access_url_headers_parse_returned_headers_and_fallback_to_bearer():
     }
 
 
-def test_resolve_compound_https_access_url_prefers_direct_https_url():
+def test_resolve_compound_http_access_url_prefers_direct_http_url():
     kit = DrsTestKitV150("https://drs.example", Report())
     test = Mock()
-    access_url = {"url": "https://data.example/manifest"}
+    access_url = {"url": "http://data.example/manifest"}
 
-    resolved_access_url = kit._resolve_compound_https_access_url(
+    resolved_access_url = kit._resolve_compound_http_access_url(
         test,
         "compound-1",
         {"access_methods": [{"type": "https", "access_url": access_url}]},
@@ -249,7 +249,7 @@ def test_resolve_compound_access_id_uses_drs_access_endpoint():
     with patch.object(
         kit,
         "send_request",
-        return_value=MockResponse(200, {"url": "https://data.example/manifest"}),
+        return_value=MockResponse(200, {"url": "http://data.example/manifest"}),
     ) as send_request, patch.object(kit, "add_test_case_common"):
         access_url = kit._resolve_compound_access_id(
             test,
@@ -265,7 +265,7 @@ def test_resolve_compound_access_id_uses_drs_access_endpoint():
         "bearer",
         "token",
     )
-    assert access_url == {"url": "https://data.example/manifest"}
+    assert access_url == {"url": "http://data.example/manifest"}
 
 
 @patch("compliance_suite.drs_testkit_v150.requests.request")
@@ -277,7 +277,7 @@ def test_fetch_and_validate_compound_manifest_validates_json_response(request):
 
     kit._fetch_and_validate_compound_manifest(
         test,
-        {"url": "https://data.example/manifest", "headers": ["X-DRS-Test: yes"]},
+        {"url": "http://data.example/manifest", "headers": ["X-DRS-Test: yes"]},
         "none",
         "",
         "json",
@@ -285,7 +285,7 @@ def test_fetch_and_validate_compound_manifest_validates_json_response(request):
 
     request.assert_called_once_with(
         "GET",
-        "https://data.example/manifest",
+        "http://data.example/manifest",
         headers={"X-DRS-Test": "yes"},
     )
     assert case.set_status_pass.call_count == 2

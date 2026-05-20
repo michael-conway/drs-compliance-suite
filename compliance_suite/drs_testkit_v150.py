@@ -418,7 +418,7 @@ class DrsTestKitV150(DrsTestKit):
     def run_compound_manifest_tests(self, config):
         phase = self.report_object.add_phase()
         phase.set_phase_name("compound manifests")
-        phase.set_phase_description("retrieve HTTPS manifests for configured DRS 1.5.0 compound objects")
+        phase.set_phase_description("retrieve HTTP(S) manifests for configured DRS 1.5.0 compound objects")
 
         compound_objects = self._configured_compound_objects(config)
         if not compound_objects:
@@ -614,7 +614,7 @@ class DrsTestKitV150(DrsTestKit):
 
         test = phase.add_test()
         test.set_test_name(f"Run DRS 1.5.0 compound manifest tests for drs id = {drs_object_id}")
-        test.set_test_description("resolve an HTTPS access URL and validate the returned compound manifest")
+        test.set_test_description("resolve an HTTP(S) access URL and validate the returned compound manifest")
 
         response = self.send_request(
             self.server_base_url,
@@ -642,7 +642,7 @@ class DrsTestKitV150(DrsTestKit):
             test.set_end_time_now()
             return
 
-        access_url = self._resolve_compound_https_access_url(
+        access_url = self._resolve_compound_http_access_url(
             test,
             drs_object_id,
             drs_object_json,
@@ -654,18 +654,18 @@ class DrsTestKitV150(DrsTestKit):
 
         test.set_end_time_now()
 
-    def _resolve_compound_https_access_url(self, test, drs_object_id, drs_object_json, auth_type, auth_token):
+    def _resolve_compound_http_access_url(self, test, drs_object_id, drs_object_json, auth_type, auth_token):
         access_methods = drs_object_json.get("access_methods", []) or []
         for access_method in access_methods:
             access_url = access_method.get("access_url", {})
             url = access_url.get("url")
-            if self._is_https_url(url):
+            if self._is_http_url(url):
                 self.add_manual_test_case(
                     test,
-                    "Compound HTTPS access_url advertised",
-                    "Validate compound object advertises a direct HTTPS access_url",
+                    "Compound HTTP(S) access_url advertised",
+                    "Validate compound object advertises a direct HTTP(S) access_url",
                     "pass",
-                    f"Found direct HTTPS access_url: {url}",
+                    f"Found direct HTTP(S) access_url: {url}",
                 )
                 return access_url
 
@@ -679,22 +679,22 @@ class DrsTestKitV150(DrsTestKit):
 
         self.add_manual_test_case(
             test,
-            "Compound HTTPS access method advertised",
-            "Validate compound object advertises an HTTPS access_url or access_id",
+            "Compound HTTP(S) access method advertised",
+            "Validate compound object advertises an HTTP(S) access_url or access_id",
             "warn",
-            "No HTTPS access_url or access_id was advertised for this compound object",
+            "No HTTP(S) access_url or access_id was advertised for this compound object",
         )
         self._record_capability(
             "Compound manifest retrieval",
             "Not supported",
-            f"Compound object {drs_object_id} did not advertise an HTTPS access_url or access_id",
+            f"Compound object {drs_object_id} did not advertise an HTTP(S) access_url or access_id",
         )
         return None
 
     def _resolve_compound_access_id(self, test, drs_object_id, access_id, auth_type, auth_token):
         self.add_manual_test_case(
             test,
-            "Compound HTTPS access_id advertised",
+            "Compound HTTP(S) access_id advertised",
             "Validate compound object access_id can be resolved through /objects/{object_id}/access/{access_id}",
             "pass",
             f"Found access_id: {access_id}",
@@ -732,44 +732,44 @@ class DrsTestKitV150(DrsTestKit):
 
         access_url = self._safe_json(response)
         url = access_url.get("url") if isinstance(access_url, dict) else None
-        if self._is_https_url(url):
+        if self._is_http_url(url):
             self.add_manual_test_case(
                 test,
-                "Resolved compound HTTPS access_url",
-                "Validate /access returned an HTTPS access_url for the compound object",
+                "Resolved compound HTTP(S) access_url",
+                "Validate /access returned an HTTP(S) access_url for the compound object",
                 "pass",
-                f"Resolved HTTPS access_url: {url}",
+                f"Resolved HTTP(S) access_url: {url}",
             )
             return access_url
 
         self.add_manual_test_case(
             test,
-            "Resolved compound HTTPS access_url",
-            "Validate /access returned an HTTPS access_url for the compound object",
+            "Resolved compound HTTP(S) access_url",
+            "Validate /access returned an HTTP(S) access_url for the compound object",
             "fail",
-            f"Resolved access_url was not HTTPS: {url}",
+            f"Resolved access_url was not HTTP(S): {url}",
         )
         self._record_capability(
             "Compound manifest retrieval",
             "Failed",
-            f"Resolved access_url was not HTTPS for compound object {drs_object_id}: {url}",
+            f"Resolved access_url was not HTTP(S) for compound object {drs_object_id}: {url}",
         )
         return None
 
     def _fetch_and_validate_compound_manifest(self, test, access_url, auth_type, auth_token, manifest_type):
         url = access_url.get("url")
-        if not self._is_https_url(url):
+        if not self._is_http_url(url):
             self.add_manual_test_case(
                 test,
-                "Compound HTTPS access_url",
-                "Validate compound access_url is an HTTPS URL before retrieval",
+                "Compound HTTP(S) access_url",
+                "Validate compound access_url is an HTTP(S) URL before retrieval",
                 "fail",
-                f"Access URL is not HTTPS: {url}",
+                f"Access URL is not HTTP(S): {url}",
             )
             self._record_capability(
                 "Compound manifest retrieval",
                 "Failed",
-                f"Compound access_url was not HTTPS: {url}",
+                f"Compound access_url was not HTTP(S): {url}",
             )
             return
 
@@ -779,8 +779,8 @@ class DrsTestKitV150(DrsTestKit):
         except requests.RequestException as error:
             self.add_manual_test_case(
                 test,
-                "Compound HTTPS manifest retrieval",
-                "Validate the compound HTTPS access_url can be retrieved",
+                "Compound HTTP(S) manifest retrieval",
+                "Validate the compound HTTP(S) access_url can be retrieved",
                 "fail",
                 f"Failed retrieving compound manifest: {error}",
             )
@@ -801,16 +801,16 @@ class DrsTestKitV150(DrsTestKit):
             )
             self.add_manual_test_case(
                 test,
-                "Compound HTTPS manifest retrieval",
-                "Validate the compound HTTPS access_url can be retrieved",
+                "Compound HTTP(S) manifest retrieval",
+                "Validate the compound HTTP(S) access_url can be retrieved",
                 "pass",
                 f"Retrieved compound manifest with status code {response.status_code}",
             )
         else:
             self.add_manual_test_case(
                 test,
-                "Compound HTTPS manifest retrieval",
-                "Validate the compound HTTPS access_url can be retrieved",
+                "Compound HTTP(S) manifest retrieval",
+                "Validate the compound HTTP(S) access_url can be retrieved",
                 "fail",
                 f"Expected a 2xx response when retrieving compound manifest, got {response.status_code}",
             )
@@ -1656,8 +1656,10 @@ class DrsTestKitV150(DrsTestKit):
         return compound_objects
 
     @staticmethod
-    def _is_https_url(url):
-        return isinstance(url, str) and url.startswith("https://")
+    def _is_http_url(url):
+        if not isinstance(url, str):
+            return False
+        return urlparse(url.strip()).scheme.lower() in {"http", "https"}
 
     @staticmethod
     def _access_url_headers(access_url, auth_type, auth_token):
