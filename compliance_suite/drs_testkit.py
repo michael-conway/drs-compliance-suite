@@ -18,7 +18,7 @@ class DrsTestConfig:
     drs_object_info: list
     drs_object_access: list
     drs_compound_object_info: list = field(default_factory=list)
-    sampler_config: dict = field(default_factory=dict)
+    negative_tests: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -42,7 +42,7 @@ def load_config_json(config_file):
                 drs_object_info=config["drs_object_info"],
                 drs_object_access=config["drs_object_access"],
                 drs_compound_object_info=config.get("drs_compound_object_info", []),
-                sampler_config=config.get("sampler_config", {}),
+                negative_tests=config.get("negative_tests", {}),
             )
     except Exception as e:
         raise Exception(f"Failed loading JSON config file: {config_file}", e)

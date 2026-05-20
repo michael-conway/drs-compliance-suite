@@ -11,12 +11,11 @@ This compliance suite currently supports the following DRS versions and will aim
 ## Installations
 - [Python 3.10+](https://www.python.org/downloads/) is required to run DRS Compliance Suite natively or using PyPI package.
 - [Docker Desktop](https://docs.docker.com/get-docker/) is required to run DRS Compliance Suite using a docker image.
-- S3 access sampling uses `boto3`, which is installed by the provided requirements.
 
 ## Running DRS Compliance Suite
 Basic workflow:
 1. Start or identify the external DRS server to test.
-2. Create a config file with service-info auth, DRS object IDs, object auth, access endpoint auth, and optional sampler settings.
+2. Create a config file with service-info auth, DRS object IDs, object auth, and access endpoint auth.
 3. Run the compliance suite with `--server_base_url`, `--version`, `--config_file`, and `--report_path`.
 4. Review the generated static Markdown report.
 
@@ -92,7 +91,7 @@ The compliance suite is provided with information for testing the DRS server thr
 - Authorization information for each DRS object and access endpoint
 - Whether each DRS object is a bundle, a compound object, or a single blob
 - Optional compound manifest format information
-- Optional access-method sampler settings
+- Optional negative test inputs for known missing IDs, invalid auth, invalid access IDs, and malformed bulk requests
 
 Here's a template for a config file that can be used to configure these details:
 ```json
@@ -100,12 +99,6 @@ Here's a template for a config file that can be used to configure these details:
   "service_info": {
     "auth_type": "basic",
     "auth_token": "dXNlcm5hbWU6cGFzc3dvcmQ="
-  },
-  "sampler_config": {
-    "sample_https": true,
-    "sample_s3": true,
-    "sample_s3_profile": "profile-name",
-    "sample_file": true
   },
   "drs_object_info" : [
     {
@@ -152,7 +145,35 @@ Here's a template for a config file that can be used to configure these details:
       "auth_type": "bearer",
       "auth_token": "secret-bearer-token-1"
     }
-  ]
+  ],
+  "negative_tests": {
+    "invalid_drs_ids": [
+      {
+        "drs_id": "__drs_compliance_missing_object__",
+        "auth_type": "none",
+        "auth_token": "",
+        "expected_status": 404
+      }
+    ],
+    "invalid_auth": [
+      {
+        "drs_id": "41898242-62a9-4129-9a2c-5a4e8f5f0afb",
+        "auth_type": "bearer",
+        "auth_token": "invalid-bearer-token",
+        "expected_statuses": [401, 403]
+      }
+    ],
+    "invalid_access_ids": [
+      {
+        "drs_id": "41898242-62a9-4129-9a2c-5a4e8f5f0afb",
+        "access_id": "__drs_compliance_missing_access__",
+        "auth_type": "bearer",
+        "auth_token": "secret-bearer-token-1",
+        "expected_status": 404
+      }
+    ],
+    "malformed_bulk": true
+  }
 }
 ```
 
@@ -160,8 +181,8 @@ Top-level config fields:
 - `service_info`: Auth used to call `/service-info`.
 - `drs_object_info`: DRS objects to test through `/objects/{object_id}`.
 - `drs_object_access`: DRS objects whose discovered `access_id` values should be tested through `/objects/{object_id}/access/{access_id}`.
-- `drs_compound_object_info`: Optional additional DRS objects to include in v1.5.0 compound/access sampling. This field has the same object shape as `drs_object_info`.
-- `sampler_config`: Optional v1.5.0 sampler controls.
+- `drs_compound_object_info`: Optional additional DRS objects to identify as compound objects. This field has the same object shape as `drs_object_info`.
+- `negative_tests`: Optional configured negative tests. Absence is reported as unexercised coverage, not as a compliance failure.
 
 DRS object fields:
 - `drs_id`: Object ID used in `/objects/{object_id}`.
@@ -169,17 +190,19 @@ DRS object fields:
 - `auth_token`: Token value for the configured auth type. For `passport`, use a JSON array of passports. For `none`, use an empty string.
 - `is_bundle`: `true` when the object is a DRS bundle.
 - `is_compound`: `true` when the object should resolve to a compound manifest through an advertised access method.
-- `compound_manifest_type`: Expected compound manifest format. Supported values are `json`, `yaml`, and `text`. Unknown values produce a warning during v1.5.0 sampling.
+- `compound_manifest_type`: Expected compound manifest format metadata for compound objects. Supported values are `json`, `yaml`, and `text`.
 
-Sampler config fields:
-- `sample_https`: When `true`, v1.5.0 sampling tries one configured object that advertises an `https` access method or HTTP(S) access URL.
-- `sample_file`: When `true`, v1.5.0 sampling tries one configured object that advertises a `file` access method or local file URL.
-- `sample_s3`: When `true`, v1.5.0 sampling tries one configured object that advertises an `s3` access method or `s3://` URL.
-- `sample_s3_profile`: Optional AWS profile name used by `boto3.Session(profile_name=...)` for S3 sampling.
+The v1.5.0 testkit validates advertised access methods and calls DRS access endpoints for discovered `access_id` values. It also evaluates `OPTIONS /objects/{object_id}` authorization discovery for every configured DRS object ID and bulk `OPTIONS /objects` authorization discovery for up to the first three configured DRS object IDs. For objects configured with `is_compound: true`, it resolves an HTTPS `access_url`, retrieves that URL, and performs basic manifest validation using `compound_manifest_type`. File and S3 `access_url` targets are not dereferenced.
 
-When a sampled access method includes both a direct `access_url` and an `access_id`, the v1.5.0 testkit tries both. When only an `access_id` is present, the testkit resolves it through `/objects/{object_id}/access/{access_id}` and then samples the returned access URL.
+The generated Markdown report includes an API Coverage Highlights section for v1.5.0. It summarizes optional capability support, notes deprecated bulk and bundle behavior, shows whether basic, bearer, or passport auth was encountered in object/access requests or advertised metadata, and includes a commented sample compound manifest when one was retrieved. Missing samples are reported as coverage gaps, not hard failures.
 
-For HTTP(S) access URL retrieval, the testkit sends headers listed in the returned `AccessURL.headers`. If no `Authorization` header is present and the configured object auth is `basic` or `bearer`, the configured token is used as a fallback. Passport auth is only used for DRS API calls unless the returned `AccessURL.headers` includes data-access auth headers.
+Bulk object and bundle behavior is deprecated in DRS 1.5.0. The suite still probes those surfaces when configured, but missing config or unsupported endpoints are warnings rather than hard compliance failures.
+
+Negative test fields:
+- `invalid_drs_ids`: Known object IDs that should not exist. Each entry can be a string or an object with `drs_id`, `auth_type`, `auth_token`, and `expected_status` or `expected_statuses`.
+- `invalid_auth`: Known valid object IDs with intentionally invalid credentials. Expected statuses usually include `401` and `403`.
+- `invalid_access_ids`: Known valid object IDs with intentionally invalid `access_id` values. Expected status is usually `404`.
+- `malformed_bulk`: When `true`, sends a malformed deprecated `POST /objects` request. If the server does not support the deprecated bulk endpoint, the result is a warning.
 
 Compound manifest validation is intentionally basic:
 - `json`: Payload must parse as JSON and be a JSON object or array.
@@ -196,6 +219,13 @@ pytest --cov=compliance_suite unittests/
 ```
 
 ## Changelog
+
+### v1.0.5 
+* proposed refactoring into version-specific testkits
+* added support for DRS 1.5.0
+* added support for compound manifest validation
+* added support for negative tests (error conditions)
+* simplify reporting as markdown file, can be included in DRS distros
 
 ### v1.0.3
 * provide flexibility in providing different auth information for drs object and drs access endpoints

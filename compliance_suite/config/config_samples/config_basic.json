@@ -3,12 +3,6 @@
     "auth_type": "basic",
     "auth_token": "dXNlcm5hbWU6cGFzc3dvcmQ="
   },
-  "sampler_config": {
-    "sample_https": true,
-    "sample_s3": true,
-    "sample_s3_profile": "profile-name",
-    "sample_file": true
-  },
   "drs_object_info" : [
     {
       "drs_id" : "697907bf-d5bd-433e-aac2-1747f1faf366",
@@ -77,5 +71,33 @@
       "auth_type": "basic",
       "auth_token": "dXNlcm5hbWU6cGFzc3dvcmQ="
     }
-  ]
+  ],
+  "negative_tests": {
+    "invalid_drs_ids": [
+      {
+        "drs_id": "__drs_compliance_missing_object__",
+        "auth_type": "basic",
+        "auth_token": "dXNlcm5hbWU6cGFzc3dvcmQ=",
+        "expected_status": 404
+      }
+    ],
+    "invalid_auth": [
+      {
+        "drs_id": "697907bf-d5bd-433e-aac2-1747f1faf366",
+        "auth_type": "basic",
+        "auth_token": "invalid-basic-token",
+        "expected_statuses": [401, 403]
+      }
+    ],
+    "invalid_access_ids": [
+      {
+        "drs_id": "697907bf-d5bd-433e-aac2-1747f1faf366",
+        "access_id": "__drs_compliance_missing_access__",
+        "auth_type": "basic",
+        "auth_token": "dXNlcm5hbWU6cGFzc3dvcmQ=",
+        "expected_status": 404
+      }
+    ],
+    "malformed_bulk": true
+  }
 }

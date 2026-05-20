@@ -1,8 +1,8 @@
 from ga4gh.testbed.report.status import Status
 import json
 import os
-import jsonschema
-from jsonschema import validate
+
+from compliance_suite.schema_validation import validate_json_schema
 
 SCHEMA_DIR = os.path.join(os.path.dirname(__file__), 'schemas')
 
@@ -41,11 +41,8 @@ class ValidateResponse():
             self.case.set_end_time_now()
             return
         expected_schema_file_path = os.path.join(SCHEMA_DIR, self.response_schema_file)
-        expected_schema = self.get_schema(expected_schema_file_path)
-        absolute_schema_file_path = os.path.dirname(os.path.abspath(expected_schema_file_path))
-        reference_resolver = jsonschema.RefResolver(base_uri=f"file://{absolute_schema_file_path}/", referrer=None)
         try:
-            validate(instance=self.actual_response.json(), resolver=reference_resolver, schema=expected_schema)
+            validate_json_schema(self.actual_response.json(), expected_schema_file_path)
             self.case.set_message("Schema Validation Successful")
             self.case.set_status_pass()
         except Exception as e:

@@ -15,8 +15,6 @@ class MockResponse:
         self.headers = headers or {}
         if isinstance(self.payload, (dict, list)):
             self.text = json.dumps(self.payload)
-        elif isinstance(self.payload, bytes):
-            self.text = self.payload.decode("utf-8", errors="replace")
         elif isinstance(self.payload, Exception):
             self.text = ""
         else:
@@ -26,91 +24,6 @@ class MockResponse:
         if isinstance(self.payload, Exception):
             raise self.payload
         return self.payload
-
-
-def test_select_http_access_method_prefers_direct_http_url():
-    drs_object = {
-        "access_methods": [
-            {"type": "file", "access_url": {"url": "file:///tmp/object"}},
-            {
-                "type": "https",
-                "access_url": {"url": "https://data.example/object"},
-            },
-            {"type": "https", "access_id": "https-access"},
-        ]
-    }
-
-    access_method = DrsTestKitV150._select_http_access_method(drs_object)
-
-    assert access_method["access_url"]["url"] == "https://data.example/object"
-
-
-def test_select_http_access_method_falls_back_to_access_id():
-    drs_object = {
-        "access_methods": [
-            {"type": "file", "access_url": {"url": "file:///tmp/object"}},
-            {"type": "https", "access_id": "https-access"},
-        ]
-    }
-
-    access_method = DrsTestKitV150._select_http_access_method(drs_object)
-
-    assert access_method["access_id"] == "https-access"
-
-
-def test_access_url_headers_parse_returned_headers_and_preserve_authorization():
-    headers = DrsTestKitV150._access_url_headers(
-        {
-            "url": "https://data.example/object",
-            "headers": [
-                "Authorization: Bearer returned-token",
-                "X-DRS-Test: yes",
-                "malformed",
-            ],
-        },
-        "bearer",
-        "configured-token",
-    )
-
-    assert headers == {
-        "Authorization": "Bearer returned-token",
-        "X-DRS-Test": "yes",
-    }
-
-
-def test_access_url_headers_fall_back_to_configured_bearer_token():
-    headers = DrsTestKitV150._access_url_headers(
-        {"url": "https://data.example/object", "headers": ["X-DRS-Test: yes"]},
-        "bearer",
-        "configured-token",
-    )
-
-    assert headers == {
-        "X-DRS-Test": "yes",
-        "Authorization": "Bearer configured-token",
-    }
-
-
-def test_enabled_sampler_types_reads_sampler_config():
-    assert DrsTestKitV150._enabled_sampler_types({
-        "sample_https": True,
-        "sample_s3": False,
-        "sample_file": True,
-    }) == ["https", "file"]
-
-
-def test_matching_access_methods_uses_type_or_url_scheme():
-    drs_object = {
-        "access_methods": [
-            {"type": "https", "access_id": "https-access"},
-            {"type": "file", "access_url": {"url": "file:///tmp/manifest.txt"}},
-            {"type": "s3", "access_url": {"url": "s3://bucket/key"}},
-        ]
-    }
-
-    assert len(DrsTestKitV150._matching_access_methods(drs_object, "https")) == 1
-    assert len(DrsTestKitV150._matching_access_methods(drs_object, "file")) == 1
-    assert len(DrsTestKitV150._matching_access_methods(drs_object, "s3")) == 1
 
 
 def test_add_200_or_202_status_cases_passes_for_accepted_response():
@@ -148,78 +61,226 @@ def test_optional_endpoint_unsupported_response_warns():
     case.set_status_warn.assert_called_once()
 
 
-def test_resolve_http_access_url_uses_access_id_endpoint():
+def test_authorization_discovery_options_checks_all_configured_objects():
+    kit = DrsTestKitV150("https://drs.example", Report())
+    config = Mock()
+    config.drs_object_info = [
+        {"drs_id": f"object-{index}", "auth_type": "none", "auth_token": ""}
+        for index in range(5)
+    ]
+
+    with patch.object(kit, "test_object_authorizations") as test_object_authorizations, \
+            patch.object(kit, "test_bulk_authorizations") as test_bulk_authorizations:
+        kit.run_authorization_discovery_tests(config)
+
+    assert [call.args[1]["drs_id"] for call in test_object_authorizations.call_args_list] == [
+        "object-0",
+        "object-1",
+        "object-2",
+        "object-3",
+        "object-4",
+    ]
+    test_bulk_authorizations.assert_called_once()
+
+
+def test_bulk_authorization_options_checks_at_most_three_objects():
+    kit = DrsTestKitV150("https://drs.example", Report())
+    phase = Mock()
+    drs_object_info = [
+        {"drs_id": f"object-{index}", "auth_type": "none", "auth_token": ""}
+        for index in range(5)
+    ]
+
+    with patch.object(
+        kit,
+        "send_request",
+        return_value=MockResponse(200, {"authorizations": {}}),
+    ) as send_request, patch.object(kit, "add_test_case_common"):
+        kit.test_bulk_authorizations(phase, drs_object_info)
+
+    send_request.assert_called_once_with(
+        "https://drs.example",
+        "/objects",
+        "none",
+        "",
+        method="OPTIONS",
+        request_body={"bulk_object_ids": ["object-0", "object-1", "object-2"]},
+    )
+
+
+def test_authorization_response_records_advertised_auth_types():
+    kit = DrsTestKitV150("https://drs.example", Report())
+    test = Mock()
+    response = MockResponse(200, {
+        "supported_types": ["BasicAuth", "BearerAuth", "PassportAuth"],
+        "passport_auth_issuers": ["https://issuer.example"],
+    })
+
+    with patch.object(kit, "add_test_case_common"):
+        kit._handle_authorization_response(test, "DRS Object Authorizations", response, "authorizations.json")
+
+    assert kit.coverage_metadata["auth_coverage"]["basic"]["authorization_metadata"] is True
+    assert kit.coverage_metadata["auth_coverage"]["bearer"]["authorization_metadata"] is True
+    assert kit.coverage_metadata["auth_coverage"]["passport"]["authorization_metadata"] is True
+
+
+def test_error_behavior_negative_tests_call_configured_requests():
+    kit = DrsTestKitV150("https://drs.example", Report())
+    config = Mock()
+    config.drs_object_info = [{"drs_id": "object-1"}]
+    config.negative_tests = {
+        "invalid_drs_ids": [{"drs_id": "missing-object", "expected_status": 404}],
+        "invalid_auth": [{"drs_id": "object-1", "auth_type": "bearer", "auth_token": "bad"}],
+        "invalid_access_ids": [{"drs_id": "object-1", "access_id": "missing-access"}],
+        "malformed_bulk": True,
+    }
+
+    with patch.object(
+        kit,
+        "send_request",
+        side_effect=[
+            MockResponse(404, {"msg": "missing", "status_code": 404}),
+            MockResponse(401, {"msg": "unauthorized", "status_code": 401}),
+            MockResponse(404, {"msg": "missing", "status_code": 404}),
+            MockResponse(400, {"msg": "bad request", "status_code": 400}),
+        ],
+    ) as send_request, patch.object(kit, "add_test_case_common"):
+        kit.run_error_behavior_tests(config)
+
+    assert send_request.call_args_list[0].args == (
+        "https://drs.example",
+        "/objects/missing-object",
+        "none",
+        "",
+    )
+    assert send_request.call_args_list[1].args == (
+        "https://drs.example",
+        "/objects/object-1",
+        "bearer",
+        "bad",
+    )
+    assert send_request.call_args_list[2].args == (
+        "https://drs.example",
+        "/objects/object-1/access/missing-access",
+        "none",
+        "",
+    )
+    assert send_request.call_args_list[3].kwargs == {
+        "method": "POST",
+        "request_body": {"bulk_object_ids": "__not_an_array__"},
+    }
+
+
+def test_object_semantic_cases_validate_id_and_access_id_uniqueness():
+    kit = DrsTestKitV150("https://drs.example", Report())
+    test = Mock()
+    response = MockResponse(200, {
+        "id": "object-1",
+        "self_uri": "drs://drs.example/object-1",
+        "size": 10,
+        "created_time": "2026-05-20T12:00:00Z",
+        "checksums": [{"type": "md5", "checksum": "abcdef"}],
+        "access_methods": [
+            {"type": "https", "access_id": "https-access"},
+            {"type": "https", "access_id": "https-access"},
+        ],
+    })
+    case = test.add_case.return_value
+
+    kit._add_drs_object_semantic_cases(test, response, False, "object-1")
+
+    case.set_status_fail.assert_called()
+    assert any(
+        call.args[0] == "Duplicate access_id values: https-access"
+        for call in case.set_message.call_args_list
+    )
+
+
+def test_configured_compound_objects_selects_only_compound_objects():
+    config = Mock()
+    config.drs_compound_object_info = [
+        {"drs_id": "compound-1", "is_compound": True},
+        {"drs_id": "plain-1", "is_compound": False},
+    ]
+    config.drs_object_info = [
+        {"drs_id": "compound-1", "is_compound": True},
+        {"drs_id": "compound-2", "is_compound": True},
+    ]
+
+    compound_objects = DrsTestKitV150._configured_compound_objects(config)
+
+    assert [drs_object["drs_id"] for drs_object in compound_objects] == ["compound-1", "compound-2"]
+
+
+def test_access_url_headers_parse_returned_headers_and_fallback_to_bearer():
+    assert DrsTestKitV150._access_url_headers(
+        {
+            "url": "https://data.example/manifest",
+            "headers": ["X-DRS-Test: yes"],
+        },
+        "bearer",
+        "token",
+    ) == {
+        "X-DRS-Test": "yes",
+        "Authorization": "Bearer token",
+    }
+
+
+def test_resolve_compound_https_access_url_prefers_direct_https_url():
+    kit = DrsTestKitV150("https://drs.example", Report())
+    test = Mock()
+    access_url = {"url": "https://data.example/manifest"}
+
+    resolved_access_url = kit._resolve_compound_https_access_url(
+        test,
+        "compound-1",
+        {"access_methods": [{"type": "https", "access_url": access_url}]},
+        "none",
+        "",
+    )
+
+    assert resolved_access_url == access_url
+
+
+def test_resolve_compound_access_id_uses_drs_access_endpoint():
     kit = DrsTestKitV150("https://drs.example", Report())
     test = Mock()
 
     with patch.object(
         kit,
         "send_request",
-        return_value=MockResponse(200, {"url": "https://data.example/object"}),
+        return_value=MockResponse(200, {"url": "https://data.example/manifest"}),
     ) as send_request, patch.object(kit, "add_test_case_common"):
-        access_url = kit._resolve_http_access_url(
-            "object-1",
-            {"type": "https", "access_id": "https-access"},
+        access_url = kit._resolve_compound_access_id(
+            test,
+            "compound-1",
+            "https-access",
             "bearer",
             "token",
-            test,
         )
 
     send_request.assert_called_once_with(
         "https://drs.example",
-        "/objects/object-1/access/https-access",
+        "/objects/compound-1/access/https-access",
         "bearer",
         "token",
     )
-    assert access_url == {"url": "https://data.example/object"}
-
-
-def test_sample_access_method_tries_direct_url_and_access_id():
-    kit = DrsTestKitV150("https://drs.example", Report())
-    test = Mock()
-    drs_object = {
-        "drs_id": "object-1",
-        "auth_type": "none",
-        "auth_token": "",
-        "is_compound": False,
-    }
-    access_method = {
-        "type": "https",
-        "access_url": {"url": "https://data.example/direct"},
-        "access_id": "https-access",
-    }
-
-    with patch.object(
-        kit,
-        "_resolve_access_id_url",
-        return_value={"url": "https://data.example/resolved"},
-    ) as resolve_access_id_url, patch.object(kit, "_sample_access_url") as sample_access_url:
-        kit._sample_access_method(test, drs_object, access_method, "https", {})
-
-    resolve_access_id_url.assert_called_once_with(
-        "object-1",
-        "https-access",
-        "none",
-        "",
-        test,
-        "https",
-    )
-    assert sample_access_url.call_count == 2
+    assert access_url == {"url": "https://data.example/manifest"}
 
 
 @patch("compliance_suite.drs_testkit_v150.requests.request")
-def test_fetch_http_access_url_validates_compound_json_payload(request):
+def test_fetch_and_validate_compound_manifest_validates_json_response(request):
     kit = DrsTestKitV150("https://drs.example", Report())
     test = Mock()
     case = test.add_case.return_value
     request.return_value = MockResponse(200, {"manifest": []})
 
-    kit._fetch_http_access_url(
+    kit._fetch_and_validate_compound_manifest(
         test,
         {"url": "https://data.example/manifest", "headers": ["X-DRS-Test: yes"]},
         "none",
         "",
-        expect_json_payload=True,
+        "json",
     )
 
     request.assert_called_once_with(
@@ -232,34 +293,32 @@ def test_fetch_http_access_url_validates_compound_json_payload(request):
 
 
 @patch("compliance_suite.drs_testkit_v150.requests.request")
-def test_fetch_http_access_url_fails_when_compound_payload_is_not_json(request):
+def test_fetch_and_validate_compound_manifest_fails_invalid_json(request):
     kit = DrsTestKitV150("https://drs.example", Report())
     test = Mock()
     case = test.add_case.return_value
     request.return_value = MockResponse(200, ValueError("not json"))
 
-    kit._fetch_http_access_url(
+    kit._fetch_and_validate_compound_manifest(
         test,
         {"url": "https://data.example/manifest"},
         "none",
         "",
-        expect_json_payload=True,
+        "json",
     )
 
     case.set_status_fail.assert_called_once()
     case.set_message.assert_called_with("Compound manifest payload was not valid JSON")
 
 
-def test_sample_file_access_url_validates_text_manifest(tmp_path):
-    manifest_file = tmp_path / "manifest.txt"
-    manifest_file.write_text("root\\n  child")
+def test_validate_text_compound_manifest_requires_non_empty_text():
     kit = DrsTestKitV150("https://drs.example", Report())
     test = Mock()
     case = test.add_case.return_value
 
-    kit._sample_file_access_url(test, {"url": str(manifest_file)}, "text")
+    kit._validate_compound_manifest_payload(test, MockResponse(200, "root\nchild"), "text")
 
-    assert case.set_status_pass.call_count == 2
+    case.set_status_pass.assert_called_once()
     case.set_status_fail.assert_not_called()
 
 
@@ -268,7 +327,7 @@ def test_validate_unknown_compound_manifest_type_warns():
     test = Mock()
     case = test.add_case.return_value
 
-    kit._validate_compound_manifest_payload(test, b"manifest", "xml")
+    kit._validate_compound_manifest_payload(test, MockResponse(200, "manifest"), "xml")
 
     case.set_status_warn.assert_called_once()
     case.set_message.assert_called_with("Unknown compound_manifest_type: xml")
@@ -278,7 +337,6 @@ def test_load_config_json_accepts_optional_compound_object_info(tmp_path):
     config_file = tmp_path / "config.json"
     config_file.write_text("""{
       "service_info": {"auth_type": "none", "auth_token": ""},
-      "sampler_config": {"sample_https": true, "sample_s3": false, "sample_file": true},
       "drs_object_info": [],
       "drs_object_access": [],
       "drs_compound_object_info": [
@@ -290,7 +348,10 @@ def test_load_config_json_accepts_optional_compound_object_info(tmp_path):
           "is_compound": true,
           "compound_manifest_type": "yaml"
         }
-      ]
+      ],
+      "negative_tests": {
+        "invalid_drs_ids": ["missing-object"]
+      }
     }""")
 
     config = load_config_json(str(config_file))
@@ -298,4 +359,4 @@ def test_load_config_json_accepts_optional_compound_object_info(tmp_path):
     assert config.drs_compound_object_info[0]["drs_id"] == "compound-1"
     assert config.drs_compound_object_info[0]["is_compound"] is True
     assert config.drs_compound_object_info[0]["compound_manifest_type"] == "yaml"
-    assert config.sampler_config["sample_https"] is True
+    assert config.negative_tests["invalid_drs_ids"] == ["missing-object"]

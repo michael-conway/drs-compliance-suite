@@ -1,7 +1,6 @@
-import json
 import os
 
-import jsonschema
+from compliance_suite.schema_validation import validate_json_schema
 
 
 SCHEMA_DIR = os.path.join(
@@ -12,18 +11,8 @@ SCHEMA_DIR = os.path.join(
 )
 
 
-def load_schema(name):
-    with open(os.path.join(SCHEMA_DIR, name), "r") as f:
-        return json.load(f)
-
-
 def validate_payload(schema_name, payload):
-    schema = load_schema(schema_name)
-    resolver = jsonschema.RefResolver(
-        base_uri="file://" + os.path.abspath(SCHEMA_DIR) + "/",
-        referrer=None
-    )
-    jsonschema.validate(instance=payload, schema=schema, resolver=resolver)
+    validate_json_schema(payload, os.path.join(SCHEMA_DIR, schema_name))
 
 
 def test_v15_service_info_schema_accepts_drs_metadata():

@@ -1,3 +1,5 @@
+import json
+
 from compliance_suite.markdown_report import report_to_markdown
 
 
@@ -63,3 +65,63 @@ def test_report_to_markdown_renders_summary_and_cases():
     assert "#### GET service-info" in markdown
     assert "| status_code | `PASS` | Response Status Code is as expected |" in markdown
     assert "| schema | `FAIL` | Required field missing |" in markdown
+
+
+def test_report_to_markdown_renders_v150_coverage_highlights():
+    coverage_metadata = {
+        "auth_coverage": {
+            "basic": {
+                "object_requests": True,
+                "access_requests": False,
+                "authorization_metadata": True,
+                "access_method_metadata": False,
+                "note": "basic auth was encountered",
+            },
+            "bearer": {
+                "object_requests": False,
+                "access_requests": False,
+                "authorization_metadata": False,
+                "access_method_metadata": False,
+                "note": "bearer auth was not encountered",
+            },
+            "passport": {
+                "object_requests": False,
+                "access_requests": False,
+                "authorization_metadata": False,
+                "access_method_metadata": False,
+                "note": "passport auth was not encountered",
+            },
+        },
+        "optional_capabilities": {
+            "Bulk object POST": {
+                "capability": "Bulk object POST",
+                "status": "Not supported",
+                "evidence": ["POST /objects returned 501"],
+                "deprecated": True,
+            }
+        },
+        "compound_manifests": {
+            "supported": True,
+            "manifest_types": ["json"],
+            "sample_manifest_type": "json",
+            "sample_manifest": "{\"manifest\": []}",
+        },
+    }
+    report = {
+        "summary": {},
+        "input_parameters": {
+            "server_base_url": "https://drs.example.org/ga4gh/drs/v1",
+            "_drs_v150_coverage_metadata": json.dumps(coverage_metadata),
+        },
+    }
+
+    markdown = report_to_markdown(report)
+
+    assert "## API Coverage Highlights" in markdown
+    assert "### Optional Capability Matrix" in markdown
+    assert "| Bulk object POST | `Not supported` | POST /objects returned 501<br>Deprecated or optional capability |" in markdown
+    assert "### Auth Coverage Matrix" in markdown
+    assert "| basic | `yes` | `no` | `yes` | `no` | basic auth was encountered |" in markdown
+    assert "### Compound Manifest Support" in markdown
+    assert "// Sample compound manifest returned by the DRS server" in markdown
+    assert "_drs_v150_coverage_metadata" not in markdown

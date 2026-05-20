@@ -21,8 +21,8 @@ setuptools.setup(
     install_requires=['python-json-logger==4.1.0',
                       'structlog==25.5.0',
                       'requests==2.34.2',
-                      'boto3==1.43.5',
                       'jsonschema==4.26.0',
+                      'referencing==0.37.0',
                       'ga4gh-testbed-lib==0.2.2'],
     entry_points='''
         [console_scripts]
