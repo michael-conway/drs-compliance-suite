@@ -5,5 +5,5 @@
     "drsComplianceReportWorkflow.version": "1.5.0",
     "drsComplianceReportWorkflow.config_file": "../../config/config_drs.json",
     "drsComplianceReportWorkflow.report_path": "wdl-test-drs-compliance-report.md",
-    "drsComplianceReportWorkflow.image_version": "0.0.16"
+    "drsComplianceReportWorkflow.image_version": "1.0.5"
 }

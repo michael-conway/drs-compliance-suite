@@ -6,11 +6,11 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="drs-compliance-suite",
-    version="1.0.3",
+    version="1.0.5",
     author="Yash Puligundla",
     author_email="yasasvini.puligundla@ga4gh.org",
     packages=["compliance_suite"],
-    package_data={'compliance_suite': ['config/*', 'schemas/*', 'schemas/v1.2.0/*', 'schemas/v1.3.0/*', 'schemas/v1.5.0/*']},
+    package_data={'compliance_suite': ['config/*', 'config/config_samples/*', 'schemas/*', 'schemas/v1.2.0/*', 'schemas/v1.3.0/*', 'schemas/v1.5.0/*']},
     description="A compliance utility reporting system for GA4GH DRS server implementations. "
                 "Supports GA4GH DRS versions - " + ",".join(SUPPORTED_DRS_VERSIONS),
     long_description=long_description,

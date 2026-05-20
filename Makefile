@@ -20,7 +20,7 @@ run-docker:
 	ga4gh/drs-compliance-suite:${DOCKER_TAG} \
 	--server_base_url "http://host.docker.internal:8089/ga4gh/drs/v1" \
 	--platform_name "ga4gh starter kit drs" --platform_description "GA4GH reference implementation of DRS specification" \
-	--drs_version "1.2.0" --config_file "compliance_suite/config/config_samples/config_none.json" \
+	--version "1.2.0" --config_file "compliance_suite/config/config_samples/config_none.json" \
 	--report_path "./output/drs_compliance_report.md"
 
 .PHONY: run-dockstore-wdl

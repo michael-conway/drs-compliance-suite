@@ -60,12 +60,12 @@ Please refer to the [Command Line Arguments](#command-line-arguments) section fo
 
 Pull the latest docker image from dockerhub. 
 ```bash
-docker pull ga4gh/drs-compliance-suite:1.0.3
+docker pull ga4gh/drs-compliance-suite:1.0.5
 ```
 Run the compliance suite using the docker image. Make sure your config file is available at `config/config_drs.json`
 
 ```bash
-docker run --rm --name drs-compliance-suite -v $(PWD)/output/:/usr/src/app/output/ -v ${PWD}/config/:/usr/src/app/config/ ga4gh/drs-compliance-suite:1.0.3 --server_base_url "http://host.docker.internal:8085/ga4gh/drs/v1" --platform_name "ga4gh starter kit drs" --platform_description "GA4GH reference implementation of DRS specification" --version "1.5.0" --report_path "./output/drs-cs-report.md" --config_file "./config/config_drs.json"
+docker run --rm --name drs-compliance-suite -v $(PWD)/output/:/usr/src/app/output/ -v ${PWD}/config/:/usr/src/app/config/ ga4gh/drs-compliance-suite:1.0.5 --server_base_url "http://host.docker.internal:8085/ga4gh/drs/v1" --platform_name "ga4gh starter kit drs" --platform_description "GA4GH reference implementation of DRS specification" --version "1.5.0" --report_path "./output/drs-cs-report.md" --config_file "./config/config_drs.json"
 ```
 Note: 
 * To run this docker image on MAC ARM processor, append `--platform linux/x86_64` to the above command.
@@ -215,7 +215,7 @@ You can find some sample config files [here](./compliance_suite/config/config_sa
 
 Run the unittests with coverage
 ```
-pytest --cov=compliance_suite unittests/
+PYTHONPATH=. pytest --cov=compliance_suite unittests/
 ```
 
 ## Changelog

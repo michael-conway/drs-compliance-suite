@@ -5,7 +5,7 @@ class: CommandLineTool
 baseCommand: drs-compliance-suite
 hints:
   DockerRequirement:
-    dockerPull: ga4gh/drs-compliance-suite:0.0.16
+    dockerPull: ga4gh/drs-compliance-suite:1.0.5
 inputs:
   server_base_url:
     type: string
