@@ -35,6 +35,16 @@ OPTIONAL_CAPABILITY_STATUS_PRIORITY = {
     "Partial": 4,
     "Failed": 5,
 }
+STANDARD_ACCESS_METHOD_TYPES = {
+    "s3",
+    "gs",
+    "ftp",
+    "gsiftp",
+    "globus",
+    "htsget",
+    "https",
+    "file",
+}
 
 
 class DrsTestKitV150(DrsTestKit):
@@ -1156,6 +1166,7 @@ class DrsTestKitV150(DrsTestKit):
             return
 
         access_methods = drs_object.get("access_methods", [])
+        self._add_alternative_access_method_case(test, access_methods)
         self._add_access_id_uniqueness_case(test, access_methods)
         direct_access_urls = [
             access_method.get("access_url", {}).get("url")
@@ -1169,6 +1180,23 @@ class DrsTestKitV150(DrsTestKit):
                 "Validate at least one direct access_url is available when advertised",
                 "pass",
                 f"Found {len(direct_access_urls)} direct access_url values",
+            )
+
+    def _add_alternative_access_method_case(self, test, access_methods):
+        alternative_types = sorted({
+            access_method.get("type")
+            for access_method in access_methods
+            if isinstance(access_method, dict)
+            and isinstance(access_method.get("type"), str)
+            and access_method.get("type") not in STANDARD_ACCESS_METHOD_TYPES
+        })
+        if alternative_types:
+            self.add_manual_test_case(
+                test,
+                "DRS Object alternative access methods",
+                "Record access method types outside the standard DRS set",
+                "warn",
+                f"Alternative access method types present: {', '.join(alternative_types)}",
             )
 
     def _add_non_negative_size_case(self, test, drs_object):

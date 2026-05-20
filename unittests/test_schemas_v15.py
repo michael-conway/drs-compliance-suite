@@ -66,6 +66,27 @@ def test_v15_drs_object_schema_accepts_access_method_metadata():
     })
 
 
+def test_v15_drs_object_schema_accepts_alternative_access_method_type():
+    validate_payload("drs_object.json", {
+        "id": "object-1",
+        "self_uri": "drs://drs.example.org/object-1",
+        "size": 12,
+        "created_time": "2026-01-01T00:00:00Z",
+        "checksums": [
+            {
+                "type": "md5",
+                "checksum": "d41d8cd98f00b204e9800998ecf8427e"
+            }
+        ],
+        "access_methods": [
+            {
+                "type": "irods",
+                "access_id": "irods-access"
+            }
+        ]
+    })
+
+
 def test_v15_access_url_schema_accepts_headers():
     validate_payload("access_url.json", {
         "url": "https://download.example.org/object-1",

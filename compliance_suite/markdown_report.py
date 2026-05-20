@@ -18,10 +18,15 @@ def report_to_markdown(report):
     if hasattr(report, "to_json"):
         report = json.loads(report.to_json(pretty=True))
 
+    overall_status, status_note = _certification_overall_status(report)
     lines = [
         "# DRS Compliance Report",
         "",
-        f"**Overall status:** `{report.get('status', 'UNKNOWN')}`",
+        f"**Overall status:** `{overall_status}`",
+    ]
+    if status_note:
+        lines.append(status_note)
+    lines.extend([
         "",
         "## Target",
         "",
@@ -29,7 +34,7 @@ def report_to_markdown(report):
         f"- Testbed version: {_inline(report.get('testbed_version'))}",
         f"- Platform: {_inline(report.get('platform_name'))}",
         f"- Platform description: {_inline(report.get('platform_description'))}",
-    ]
+    ])
 
     input_lines = _format_inputs(report)
     if input_lines:
@@ -39,11 +44,13 @@ def report_to_markdown(report):
     lines.extend(["", "## Summary", ""])
     lines.extend(_summary_table(report.get("summary", {})))
 
+    phases = report.get("phases", [])
+    lines.extend(_failure_summary_to_markdown(phases))
+
     coverage_metadata = _coverage_metadata(report)
     if coverage_metadata:
         lines.extend(_coverage_highlights_to_markdown(coverage_metadata))
 
-    phases = report.get("phases", [])
     if phases:
         lines.extend(["", "## Phases"])
 
@@ -122,6 +129,152 @@ def _summary_table(summary):
     separator = "| " + " | ".join("---" for _ in SUMMARY_FIELDS) + " |"
     values = "| " + " | ".join(str(summary.get(key, 0)) for key, _ in SUMMARY_FIELDS) + " |"
     return [header, separator, values]
+
+
+def _certification_overall_status(report):
+    status = _text(report.get("status", "UNKNOWN")).strip() or "UNKNOWN"
+    summary = report.get("summary", {})
+    if _is_warning_only_summary(summary):
+        return "PASS", "Pass was with warnings shown below."
+    return status, ""
+
+
+def _is_warning_only_summary(summary):
+    if not isinstance(summary, dict):
+        return False
+
+    failed = _summary_count(summary, "failed")
+    unknown = _summary_count(summary, "unknown")
+    warned = _summary_count(summary, "warned")
+    return failed == 0 and unknown == 0 and warned > 0
+
+
+def _summary_count(summary, key):
+    try:
+        return int(summary.get(key, 0) or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _failure_summary_to_markdown(phases):
+    failures = _collect_downstream_failures(phases)
+    if not failures:
+        return []
+
+    lines = [
+        "",
+        "## Failure Summary",
+        "",
+        "| Phase | Test | Status | Detail |",
+        "| --- | --- | --- | --- |",
+    ]
+    for failure in failures:
+        lines.append(
+            "| {phase} | {test} | `{status}` | {detail} |".format(
+                phase=_cell(failure.get("phase", "")),
+                test=_cell(failure.get("test", "")),
+                status=_cell(failure.get("status", "FAIL")),
+                detail=_cell(failure.get("detail", "")),
+            )
+        )
+    return lines
+
+
+def _collect_downstream_failures(phases):
+    failures = []
+    for phase in _as_list(phases):
+        if not isinstance(phase, dict):
+            continue
+
+        phase_name = phase.get("phase_name", "Unnamed phase")
+        phase_failure_start = len(failures)
+        tests = _as_list(phase.get("tests", []))
+
+        for test in tests:
+            if not isinstance(test, dict):
+                continue
+
+            test_name = test.get("test_name", "Unnamed test")
+            failing_cases = [
+                case
+                for case in _test_cases(test)
+                if isinstance(case, dict) and _is_failure_status(case.get("status"))
+            ]
+            if failing_cases:
+                for case in failing_cases:
+                    failures.append({
+                        "phase": phase_name,
+                        "test": test_name,
+                        "status": case.get("status", "FAIL"),
+                        "detail": _case_failure_detail(case),
+                    })
+                continue
+
+            if _is_failure_status(test.get("status")):
+                failures.append({
+                    "phase": phase_name,
+                    "test": test_name,
+                    "status": test.get("status", "FAIL"),
+                    "detail": _test_failure_detail(test),
+                })
+
+        if _is_failure_status(phase.get("status")) and len(failures) == phase_failure_start:
+            failures.append({
+                "phase": phase_name,
+                "test": "",
+                "status": phase.get("status", "FAIL"),
+                "detail": _phase_failure_detail(phase),
+            })
+
+    return failures
+
+
+def _test_cases(test):
+    cases = test.get("case")
+    if cases is None:
+        cases = test.get("cases", [])
+    return _as_list(cases)
+
+
+def _case_failure_detail(case):
+    case_name = _text(case.get("case_name", ""))
+    message = _text(case.get("message", ""))
+    if case_name and message:
+        return f"{case_name}: {message}"
+    return (
+        message
+        or case_name
+        or _text(case.get("case_description", ""))
+        or "Case failed without detail"
+    )
+
+
+def _test_failure_detail(test):
+    return (
+        _text(test.get("message", ""))
+        or _text(test.get("test_description", ""))
+        or "Test failed without case detail"
+    )
+
+
+def _phase_failure_detail(phase):
+    return (
+        _text(phase.get("message", ""))
+        or _text(phase.get("phase_description", ""))
+        or "Phase failed without test detail"
+    )
+
+
+def _is_failure_status(status):
+    return _text(status).strip().lower() in {"fail", "failed"}
+
+
+def _as_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    return [value]
 
 
 def _format_inputs(report):

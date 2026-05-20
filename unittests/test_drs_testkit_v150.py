@@ -196,6 +196,31 @@ def test_object_semantic_cases_validate_id_and_access_id_uniqueness():
     )
 
 
+def test_object_semantic_cases_warn_for_alternative_access_methods():
+    kit = DrsTestKitV150("https://drs.example", Report())
+    test = Mock()
+    response = MockResponse(200, {
+        "id": "object-1",
+        "self_uri": "drs://drs.example/object-1",
+        "size": 10,
+        "created_time": "2026-05-20T12:00:00Z",
+        "checksums": [{"type": "md5", "checksum": "abcdef"}],
+        "access_methods": [
+            {"type": "irods", "access_id": "irods-access"},
+            {"type": "https", "access_id": "https-access"},
+        ],
+    })
+    case = test.add_case.return_value
+
+    kit._add_drs_object_semantic_cases(test, response, False, "object-1")
+
+    case.set_status_warn.assert_called()
+    assert any(
+        call.args[0] == "Alternative access method types present: irods"
+        for call in case.set_message.call_args_list
+    )
+
+
 def test_configured_compound_objects_selects_only_compound_objects():
     config = Mock()
     config.drs_compound_object_info = [

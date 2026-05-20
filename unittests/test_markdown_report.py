@@ -62,9 +62,99 @@ def test_report_to_markdown_renders_summary_and_cases():
     assert "- server_base_url: `https://drs.example.org/ga4gh/drs/v1`" in markdown
     assert "| Passed | Failed | Warned | Skipped | Unknown |" in markdown
     assert "| 1 | 1 | 0 | 0 | 0 |" in markdown
+    assert "## Failure Summary" in markdown
+    assert "| Phase | Test | Status | Detail |" in markdown
+    assert "| service info | GET service-info | `FAIL` | schema: Required field missing |" in markdown
     assert "#### GET service-info" in markdown
     assert "| status_code | `PASS` | Response Status Code is as expected |" in markdown
     assert "| schema | `FAIL` | Required field missing |" in markdown
+
+
+def test_report_to_markdown_failure_summary_uses_test_and_phase_fallbacks():
+    report = {
+        "summary": {"failed": 2},
+        "phases": [
+            {
+                "phase_name": "error behavior",
+                "status": "FAIL",
+                "tests": [
+                    {
+                        "test_name": "invalid auth",
+                        "status": "FAIL",
+                        "message": "Expected 401 or 403, got 200",
+                    }
+                ],
+            },
+            {
+                "phase_name": "startup",
+                "phase_description": "initialize suite",
+                "status": "FAIL",
+            },
+        ],
+    }
+
+    markdown = report_to_markdown(report)
+
+    assert "| error behavior | invalid auth | `FAIL` | Expected 401 or 403, got 200 |" in markdown
+    assert "| startup |  | `FAIL` | initialize suite |" in markdown
+
+
+def test_report_to_markdown_treats_warning_only_summary_as_passing():
+    report = {
+        "status": "WARN",
+        "summary": {
+            "passed": 6,
+            "failed": 0,
+            "warned": 1,
+            "skipped": 0,
+            "unknown": 0,
+        },
+        "phases": [
+            {
+                "phase_name": "optional behavior",
+                "status": "WARN",
+                "tests": [
+                    {
+                        "test_name": "optional endpoint",
+                        "status": "WARN",
+                        "case": [
+                            {
+                                "case_name": "optional support",
+                                "status": "WARN",
+                                "message": "Endpoint is optional and was not exercised",
+                            }
+                        ],
+                    }
+                ],
+            }
+        ],
+    }
+
+    markdown = report_to_markdown(report)
+
+    assert "**Overall status:** `PASS`" in markdown
+    assert "Pass was with warnings shown below." in markdown
+    assert "| 6 | 0 | 1 | 0 | 0 |" in markdown
+    assert "#### optional endpoint" in markdown
+    assert "| optional support | `WARN` | Endpoint is optional and was not exercised |" in markdown
+
+
+def test_report_to_markdown_keeps_failed_warning_summary_as_failing():
+    report = {
+        "status": "FAIL",
+        "summary": {
+            "passed": 6,
+            "failed": 1,
+            "warned": 1,
+            "skipped": 0,
+            "unknown": 0,
+        },
+    }
+
+    markdown = report_to_markdown(report)
+
+    assert "**Overall status:** `FAIL`" in markdown
+    assert "Pass was with warnings shown below." not in markdown
 
 
 def test_report_to_markdown_renders_v150_coverage_highlights():
